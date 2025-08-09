@@ -69,45 +69,111 @@ document.addEventListener('DOMContentLoaded', function() {
             
             for (let [key, value] of formData.entries()) {
                 if (value.trim()) {
-                    const label = this.querySelector(`[name="${key}"]`).previousElementSibling.textContent;
+                    const field = this.querySelector(`[name="${key}"]`);
+                    const label = field.previousElementSibling ? field.previousElementSibling.textContent.replace(':', '') : key;
                     message += `${label}: ${value}\n`;
                 }
             }
             
-            const whatsappNumber = '+919876543210'; // Get from settings
+            // Get WhatsApp number from settings or use default
+            const whatsappNumber = '<?php echo $settings["whatsapp_number"] ?? "+919876543210"; ?>';
             const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
             window.open(whatsappURL, '_blank');
+            
+            // Show success message
+            alert('Redirecting to WhatsApp to submit your admission form!');
         });
     }
 
-    // Video unlock functionality
-    window.unlockVideo = function(videoId) {
-        // Check if user is logged in
+    // Payment functionality
+    window.initiatePayment = function(videoId) {
         <?php if (!isset($_SESSION['user_id'])): ?>
             if (confirm('You need to register/login to purchase videos. Would you like to register now?')) {
                 window.location.href = 'user/register.php';
             }
             return;
         <?php else: ?>
-            const upiId = '<?php echo $settings['upi_id'] ?? 'admin@paytm'; ?>';
-            const amount = 99;
+            // Show loading
+            const paymentModal = document.getElementById('paymentModal');
+            const paymentContent = document.getElementById('paymentContent');
             
-            // Create payment modal or redirect
-            const paymentMessage = `Pay ₹${amount} to unlock this video.\n\nUPI ID: ${upiId}\n\nAfter payment, send screenshot to WhatsApp help for video access.`;
+            paymentContent.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i><p>Loading payment details...</p></div>';
+            paymentModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
             
-            if (confirm(paymentMessage)) {
-                // You can integrate with UPI payment gateway here
-                // For now, we'll show instructions
-                alert('Please pay ₹99 via UPI and send payment screenshot to our WhatsApp help number. We will activate your video access within 30 minutes.');
-                
-                // Redirect to WhatsApp for payment confirmation
-                const whatsappNumber = '<?php echo $settings['whatsapp_number'] ?? '+919876543210'; ?>';
-                const whatsappMessage = `I have made payment of ₹99 for video ID: ${videoId}. Please activate my access.\n\nMy registered email: <?php echo $_SESSION['user_email'] ?? ''; ?>`;
-                const whatsappURL = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
-                window.open(whatsappURL, '_blank');
-            }
+            // Fetch payment details
+            fetch('payment.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `video_id=${videoId}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showPaymentDetails(data);
+                } else {
+                    alert('Error: ' + data.message);
+                    closePaymentModal();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                closePaymentModal();
+            });
         <?php endif; ?>
-        }
+    };
+    
+    function showPaymentDetails(data) {
+        const paymentContent = document.getElementById('paymentContent');
+        paymentContent.innerHTML = `
+            <div class="payment-info">
+                <h3>${data.video_title}</h3>
+                <div class="payment-amount">₹${data.amount}</div>
+                
+                <div class="upi-info">
+                    <h4><i class="fas fa-mobile-alt"></i> Pay via UPI</h4>
+                    <div class="upi-id">${data.upi_id}</div>
+                    <p style="color: var(--gray-600); font-size: var(--font-size-sm);">
+                        Copy this UPI ID or scan QR code to pay
+                    </p>
+                </div>
+                
+                <div class="payment-steps">
+                    <h4><i class="fas fa-list-ol"></i> Payment Steps:</h4>
+                    <ol>
+                        <li>Click "Pay Now" to open your UPI app</li>
+                        <li>Complete the payment of ₹${data.amount}</li>
+                        <li>Take a screenshot of payment confirmation</li>
+                        <li>Send screenshot to WhatsApp for verification</li>
+                        <li>Get video access within 30 minutes</li>
+                    </ol>
+                </div>
+                
+                <div class="payment-buttons">
+                    <a href="${data.upi_url}" class="btn btn-primary">
+                        <i class="fas fa-credit-card"></i> Pay Now
+                    </a>
+                    <a href="https://wa.me/${data.whatsapp_number}?text=${encodeURIComponent(`I have completed payment of ₹${data.amount} for video: ${data.video_title}. Please activate my access. Payment ID: ${data.payment_id}`)}" 
+                       class="btn btn-secondary" target="_blank">
+                        <i class="fab fa-whatsapp"></i> Send Screenshot
+                    </a>
+                </div>
+                
+                <p style="margin-top: var(--spacing-4); font-size: var(--font-size-sm); color: var(--gray-600);">
+                    <i class="fas fa-shield-alt"></i> Secure payment powered by UPI
+                </p>
+            </div>
+        `;
+    }
+    
+    window.closePaymentModal = function() {
+        const paymentModal = document.getElementById('paymentModal');
+        paymentModal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    };
 
     // Testimonial modal functionality
     const testimonialModal = document.getElementById('testimonialModal');
@@ -121,9 +187,12 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Close modal
-    testimonialModal?.addEventListener('click', function(e) {
-        if (e.target === this || e.target.classList.contains('close')) {
-            this.style.display = 'none';
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal') || e.target.classList.contains('close')) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                modal.style.display = 'none';
+            });
             document.body.style.overflow = 'auto';
         }
     });
@@ -146,6 +215,11 @@ document.addEventListener('DOMContentLoaded', function() {
     testimonialForm?.addEventListener('submit', function(e) {
         e.preventDefault();
         
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+        submitBtn.disabled = true;
+        
         const formData = new FormData(this);
         
         fetch('submit_testimonial.php', {
@@ -159,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 testimonialModal.style.display = 'none';
                 document.body.style.overflow = 'auto';
                 this.reset();
-                characterCount.textContent = '0/500';
+                if (characterCount) characterCount.textContent = '0/500';
             } else {
                 alert('Error: ' + data.message);
             }
@@ -167,6 +241,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('Error:', error);
             alert('An error occurred. Please try again.');
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         });
     });
 
@@ -360,6 +438,6 @@ function formatCurrency(amount) {
 window.GTOnlineClass = {
     formatDate,
     formatCurrency,
-    unlockVideo: window.unlockVideo,
+    initiatePayment: window.initiatePayment,
     openTestimonialForm: window.openTestimonialForm
 };

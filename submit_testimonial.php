@@ -2,6 +2,9 @@
 require_once 'config.php';
 
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST');
+header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -34,9 +37,11 @@ try {
     
     // Insert testimonial
     $stmt = $pdo->prepare("INSERT INTO testimonials (name, mobile, review, status) VALUES (?, ?, ?, 'pending')");
-    $stmt->execute([$name, $mobile, $review]);
-    
-    echo json_encode(['success' => true, 'message' => 'Testimonial submitted successfully']);
+    if ($stmt->execute([$name, $mobile, $review])) {
+        echo json_encode(['success' => true, 'message' => 'Testimonial submitted successfully! It will be reviewed and published soon.']);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'Failed to submit testimonial. Please try again.']);
+    }
     
 } catch (Exception $e) {
     error_log("Testimonial submission error: " . $e->getMessage());

@@ -126,7 +126,7 @@ $testimonials = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved
     </section>
 
     <!-- Training Videos Section -->
-    <section id="trainings" class="trainings-section">
+    <section id="trainings" class="section">
         <div class="container">
             <h2 class="section-title">
                 <i class="fas fa-play-circle"></i>
@@ -136,17 +136,19 @@ $testimonials = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved
                 <?php foreach ($training_videos as $video): ?>
                     <div class="video-card animate-fade-up">
                         <div class="video-thumbnail">
-                            <video controls>
+                            <video controls preload="metadata">
                                 <source src="uploads/<?php echo $video['filename']; ?>" type="video/mp4">
                                 Your browser does not support the video tag.
                             </video>
-                            <div class="video-overlay">
-                                <i class="fas fa-play"></i>
-                            </div>
                         </div>
                         <div class="video-info">
                             <h3><?php echo $video['title']; ?></h3>
                             <p><?php echo $video['description']; ?></p>
+                            <div class="video-meta">
+                                <span class="type-badge" style="background: var(--success-color); color: white; padding: var(--spacing-1) var(--spacing-2); border-radius: var(--spacing-1); font-size: var(--font-size-xs);">
+                                    <i class="fas fa-play"></i> Free Training
+                                </span>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -274,7 +276,7 @@ $testimonials = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved
                                         <i class="fas fa-play"></i> Watch Now
                                     </a>
                                 <?php else: ?>
-                                    <button class="btn btn-unlock" onclick="unlockVideo(<?php echo $lecture['id']; ?>)">
+                                    <button class="btn btn-unlock" onclick="initiatePayment(<?php echo $lecture['id']; ?>)">
                                         <i class="fas fa-unlock"></i>
                                         Unlock @ ₹<?php echo number_format($lecture['price']); ?>
                                     </button>
@@ -333,6 +335,16 @@ $testimonials = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved
         </div>
     </div>
 
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePaymentModal()">&times;</span>
+            <h2><i class="fas fa-credit-card"></i> Complete Payment</h2>
+            <div id="paymentContent">
+                <!-- Payment content will be loaded here -->
+            </div>
+        </div>
+    </div>
     <script src="assets/js/main.js"></script>
 </body>
 </html>

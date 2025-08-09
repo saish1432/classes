@@ -10,6 +10,11 @@ $total_users = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $total_videos = $pdo->query("SELECT COUNT(*) FROM videos")->fetchColumn();
 $total_testimonials = $pdo->query("SELECT COUNT(*) FROM testimonials WHERE status = 'pending'")->fetchColumn();
 $total_assigned = $pdo->query("SELECT COUNT(*) FROM assigned_videos WHERE status = 'active'")->fetchColumn();
+
+// Get payment statistics
+$total_earnings = $pdo->query("SELECT COALESCE(SUM(payment_amount), 0) FROM assigned_videos WHERE payment_status = 'completed'")->fetchColumn();
+$pending_payments = $pdo->query("SELECT COUNT(*) FROM assigned_videos WHERE payment_status = 'pending'")->fetchColumn();
+$today_earnings = $pdo->query("SELECT COALESCE(SUM(payment_amount), 0) FROM assigned_videos WHERE payment_status = 'completed' AND DATE(purchase_date) = CURDATE()")->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -192,6 +197,30 @@ $total_assigned = $pdo->query("SELECT COUNT(*) FROM assigned_videos WHERE status
                 <div class="stat-number"><?php echo $total_assigned; ?></div>
                 <div class="stat-label">Active Subscriptions</div>
             </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--success-color);">
+                    <i class="fas fa-rupee-sign"></i>
+                </div>
+                <div class="stat-number">₹<?php echo number_format($total_earnings); ?></div>
+                <div class="stat-label">Total Earnings</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--warning-color);">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="stat-number"><?php echo $pending_payments; ?></div>
+                <div class="stat-label">Pending Payments</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--accent-color);">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div class="stat-number">₹<?php echo number_format($today_earnings); ?></div>
+                <div class="stat-label">Today's Earnings</div>
+            </div>
         </div>
 
         <!-- Quick Actions -->
@@ -273,13 +302,16 @@ $total_assigned = $pdo->query("SELECT COUNT(*) FROM assigned_videos WHERE status
             
             <div class="action-card">
                 <h3>
-                    <i class="fas fa-chart-bar"></i>
-                    Quick Stats
+                    <i class="fas fa-rupee-sign"></i>
+                    Payment Management
                 </h3>
-                <div style="color: var(--gray-600);">
-                    <p><strong>Today:</strong> <?php echo date('M j, Y'); ?></p>
-                    <p><strong>Active Users:</strong> <?php echo $total_users; ?></p>
-                    <p><strong>Pending Reviews:</strong> <?php echo $total_testimonials; ?></p>
+                <div class="action-buttons">
+                    <a href="payments.php" class="btn btn-primary">
+                        <i class="fas fa-list"></i> View Payments
+                    </a>
+                    <a href="payments.php?status=pending" class="btn btn-secondary">
+                        <i class="fas fa-clock"></i> Pending Approvals
+                    </a>
                 </div>
             </div>
         </div>
